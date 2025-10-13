@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Result</h2>
+{% if error %}
+  <p style="color:red;">Error: {{ error }}</p>
+{% else %}
+  <p>Prediction: {{ result.prediction }}</p>
+  <p>Probability: {{ result.probability }}</p>
+{% endif %}
+<a href="{{ url_for('index') }}">Back</a>
+{% endblock %}

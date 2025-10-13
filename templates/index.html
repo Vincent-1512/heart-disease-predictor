@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Input patient data</h2>
+<form action="{{ url_for('predict') }}" method="post">
+  <!-- Add inputs matching model/feature_order.json -->
+  <label>age: <input name="age" /></label><br/>
+  <label>sex: <input name="sex" /></label><br/>
+  <label>cigsPerDay: <input name="cigsPerDay" /></label><br/>
+  <!-- ... add other fields as needed ... -->
+  <button type="submit">Predict</button>
+</form>
+{% endblock %}
