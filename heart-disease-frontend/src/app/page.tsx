@@ -1,22 +1,31 @@
-// File: app/page.js (ví dụ cho Next.js App Router)
 'use client';
 
 import { useState } from 'react';
 
-export default function HomePage() {
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+// Bước 1: Tạo một "khuôn mẫu" cho kết quả dự đoán
+interface PredictionResult {
+  prediction: number;
+  probability: string;
+  error?: string; // Thêm thuộc tính error (tùy chọn)
+}
 
-  async function handleSubmit(event) {
+export default function HomePage() {
+  // Bước 2: Khai báo state "result" có thể là kiểu PredictionResult hoặc là null
+  const [result, setResult] = useState<PredictionResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Bước 3: Khai báo kiểu dữ liệu cho "event"
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setResult(null);
+    setError('');
 
-    const formData = new FormData(event.target);
+    const formData = new FormData(event.currentTarget);
     const data = Object.fromEntries(formData.entries());
 
     try {
-      // Gọi đến API Flask đang chạy trên cổng 5001
       const response = await fetch('http://127.0.0.1:5001/api/predict', {
         method: 'POST',
         headers: {
@@ -25,48 +34,56 @@ export default function HomePage() {
         body: JSON.stringify(data),
       });
 
-      const predictionResult = await response.json();
+      if (!response.ok) {
+        throw new Error(`Lỗi mạng: ${response.statusText}`);
+      }
+
+      const predictionResult: PredictionResult = await response.json();
+      if (predictionResult.error) {
+        throw new Error(predictionResult.error);
+      }
       setResult(predictionResult);
-    } catch (error) {
-      console.error("Error fetching prediction:", error);
-      setResult({ error: "Không thể kết nối đến server dự đoán." });
+
+    } catch (err) {
+        if (err instanceof Error) {
+            setError(`Không thể lấy kết quả: ${err.message}`);
+        } else {
+            setError("Đã xảy ra lỗi không xác định.");
+        }
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div>
-      <h1>Dự Báo Bệnh Tim (Next.js)</h1>
+    <main style={{ fontFamily: 'sans-serif', maxWidth: '600px', margin: 'auto', padding: '20px' }}>
+      <h1>Dự Báo Bệnh Tim (Next.js & TypeScript)</h1>
       <form onSubmit={handleSubmit}>
-        {/* Thêm các ô input của bạn ở đây. Ví dụ: */}
-        <div>
-          <label>Tuổi:</label>
-          <input type="number" name="age" required />
+        {/* THÊM ĐẦY ĐỦ CÁC Ô INPUT CỦA BẠN VÀO ĐÂY */}
+        <div style={{ marginBottom: '10px' }}>
+          <label>Tuổi: </label>
+          <input type="number" name="age" required style={{ width: '100%', padding: '8px' }} />
         </div>
-        <div>
-          <label>Giới tính (1: Nam, 0: Nữ):</label>
-          <input type="number" name="male" required />
+        <div style={{ marginBottom: '10px' }}>
+          <label>Giới tính (1: Nam, 0: Nữ): </label>
+          <input type="number" name="male" required style={{ width: '100%', padding: '8px' }} />
         </div>
-        {/* ...Thêm 13 trường còn lại... */}
-        <button type="submit" disabled={loading}>
+        {/* ... THÊM 13 TRƯỜNG CÒN LẠI VÀO ĐÂY ... */}
+        <button type="submit" disabled={loading} style={{ width: '100%', padding: '10px', background: 'green', color: 'white', border: 'none', cursor: 'pointer' }}>
           {loading ? 'Đang dự đoán...' : 'Dự đoán'}
         </button>
       </form>
 
+      {error && <p style={{ color: 'red', marginTop: '20px' }}>Lỗi: {error}</p>}
+
+      {/* Code ở đây không còn lỗi nữa vì TypeScript đã hiểu "result" */}
       {result && (
-        <div>
+        <div style={{ marginTop: '20px' }}>
           <h2>Kết quả:</h2>
-          {result.error ? (
-            <p style={{ color: 'red' }}>{result.error}</p>
-          ) : (
-            <>
-              <p>Dự đoán: {result.prediction === 1 ? 'Có nguy cơ' : 'Không có nguy cơ'}</p>
-              <p>Xác suất mắc bệnh: {result.probability}</p>
-            </>
-          )}
+          <p>Dự đoán: <strong>{result.prediction === 1 ? 'Có nguy cơ mắc bệnh tim' : 'Không có nguy cơ'}</strong></p>
+          <p>Xác suất mắc bệnh: <strong>{result.probability}</strong></p>
         </div>
       )}
-    </div>
+    </main>
   );
 }
