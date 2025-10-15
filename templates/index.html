@@ -1,12 +1,30 @@
-{% extends "base.html" %}
-{% block content %}
-<h2>Input patient data</h2>
-<form action="{{ url_for('predict') }}" method="post">
-  <!-- Add inputs matching model/feature_order.json -->
-  <label>age: <input name="age" /></label><br/>
-  <label>sex: <input name="sex" /></label><br/>
-  <label>cigsPerDay: <input name="cigsPerDay" /></label><br/>
-  <!-- ... add other fields as needed ... -->
-  <button type="submit">Predict</button>
-</form>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Dự Báo Bệnh Tim</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Nhập Thông Tin Bệnh Nhân</h1>
+        <form action="{{ url_for('predict') }}" method="post">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="age">Tuổi:</label>
+                    <input type="number" name="age" id="age" required>
+                </div>
+                <div class="form-group">
+                    <label for="male">Giới tính (1: Nam, 0: Nữ):</label>
+                    <input type="number" name="male" id="male" required>
+                </div>
+                 <div class="form-group">
+                    <label for="glucose">Nồng độ Glucose:</label>
+                    <input type="number" step="any" name="glucose" id="glucose" required>
+                </div>
+            </div>
+            <button type="submit">Dự Đoán</button>
+        </form>
+    </div>
+</body>
+</html>
