@@ -1,142 +1,181 @@
-'use client';
-import { useState } from 'react';
-// Import font chữ từ Google Fonts (ví dụ: Nunito)
-import { Nunito } from 'next/font/google';
+'use client'
 
-// Cấu hình font chữ
-const nunito = Nunito({ subsets: ['latin'] });
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
 
-// Giữ nguyên interface
-interface PredictionResult {
-  prediction: number;
-  probability: string;
-  error?: string;
+// Statically defining the initial form state for clarity and safety
+const initialFormData = {
+  age: '',
+  sex: '',
+  cigsPerDay: '',
+  BPMeds: '',
+  prevalentStroke: '',
+  prevalentHyp: '',
+  diabetes: '',
+  totChol: '',
+  sysBP: '',
+  diaBP: '',
+  BMI: '',
+  heartRate: '',
+  glucose: '',
+};
+
+type FormFieldConfig = {
+  id: keyof typeof initialFormData;
+  label: string;
+  placeholder: string;
+};
+
+// Configuration for form fields for better maintainability and clearer labels
+const formFieldsConfig: FormFieldConfig[] = [
+  { id: 'age', label: 'Age', placeholder: 'e.g., 52' },
+  { id: 'sex', label: 'Sex', placeholder: '1 for male, 0 for female' },
+  { id: 'cigsPerDay', label: 'Cigarettes Per Day', placeholder: 'e.g., 0' },
+  { id: 'BPMeds', label: 'On BP Medication', placeholder: '1 for yes, 0 for no' },
+  { id: 'prevalentStroke', label: 'Prevalent Stroke', placeholder: '1 for yes, 0 for no' },
+  { id: 'prevalentHyp', label: 'Prevalent Hypertension', placeholder: '1 for yes, 0 for no' },
+  { id: 'diabetes', label: 'Diabetes', placeholder: '1 for yes, 0 for no' },
+  { id: 'totChol', label: 'Total Cholesterol', placeholder: 'e.g., 250' },
+  { id: 'sysBP', label: 'Systolic Blood Pressure', placeholder: 'e.g., 120' },
+  { id: 'diaBP', label: 'Diastolic Blood Pressure', placeholder: 'e.g., 80' },
+  { id: 'BMI', label: 'BMI', placeholder: 'e.g., 28.5' },
+  { id: 'heartRate', label: 'Heart Rate', placeholder: 'e.g., 75' },
+  { id: 'glucose', label: 'Glucose', placeholder: 'e.g., 85' },
+];
+
+// Helper component for a single form field
+interface FormFieldProps {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  type?: string;
 }
 
-export default function HomePage() {
-  const [result, setResult] = useState<PredictionResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+const FormField = ({ id, label, placeholder, value, onChange, type = "number" }: FormFieldProps) => (
+  <div className="grid w-full items-center gap-1.5">
+    <Label htmlFor={id}>{label}</Label>
+    <Input
+      type={type}
+      id={id}
+      name={id}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      required
+    />
+  </div>
+);
 
-  // Giữ nguyên hàm handleSubmit
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+interface PredictionResult {
+  prediction: number;
+  probability: number;
+}
+
+export default function Home() {
+  const [formData, setFormData] = useState(initialFormData);
+  const [result, setResult] = useState<PredictionResult | null>(null);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
     setResult(null);
     setError('');
 
-    const formData = new FormData(event.currentTarget);
-    const data = Object.fromEntries(formData.entries());
-
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/predict', {
+      const processedData = Object.entries(formData).reduce((acc, [key, value]) => {
+        // Ensure empty strings are converted to numbers (e.g., 0), or handle as needed
+        acc[key] = Number(value);
+        return acc;
+      }, {} as {[key: string]: number});
+
+      const response = await fetch('http://localhost:5001/api/predict', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(processedData),
       });
 
-      const predictionResult: PredictionResult = await response.json();
-      if (predictionResult.error || !response.ok) {
-        throw new Error(predictionResult.error || "Có lỗi xảy ra");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'An error occurred during prediction.');
       }
-      setResult(predictionResult);
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Lỗi không xác định.");
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }
+  };
 
-  // --- THAY ĐỔI GIAO DIỆN BẮT ĐẦU TỪ ĐÂY ---
   return (
-    // Sử dụng font Nunito, nền màu kem (be), căn giữa
-    <main className={`${nunito.className} min-h-screen bg-beige-50 flex items-center justify-center p-4 sm:p-6 lg:p-8`}>
-      {/* Khung thẻ (Card) với bo góc lớn hơn, đổ bóng tinh tế, tăng padding */}
-      <div className="w-full max-w-4xl bg-white rounded-xl shadow-lg p-8 sm:p-10 md:p-12">
-
-        {/* Tiêu đề với màu sắc ấm hơn, font lớn hơn */}
-        <h1 className="text-3xl sm:text-4xl font-bold text-center text-amber-800 mb-10">
-          Chẩn đoán Nguy cơ Bệnh Tim
-        </h1>
-
-        {/* Form và các thành phần bên trong giữ nguyên style cũ ở bước này */}
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4"> {/* Giảm khoảng cách dọc */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tuổi (age)</label>
-              <input type="number" name="age" required defaultValue="54" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/> {/* Đổi màu focus */}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính (sex: 1=Nam)</label>
-              <input type="number" name="sex" required defaultValue="1" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Loại đau ngực (cp: 0-3)</label>
-              <input type="number" name="cp" required defaultValue="0" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Huyết áp nghỉ (trestbps)</label>
-              <input type="number" name="trestbps" required defaultValue="120" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Cholesterol (chol)</label>
-              <input type="number" name="chol" required defaultValue="250" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Đường huyết 120 (fbs: 1=Có)</label>
-              <input type="number" name="fbs" required defaultValue="0" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Điện tâm đồ nghỉ (restecg: 0-2)</label>
-              <input type="number" name="restecg" required defaultValue="0" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nhịp tim tối đa (thalach)</label>
-              <input type="number" name="thalach" required defaultValue="150" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Đau ngực do gắng sức (exang: 1=Có)</label>
-              <input type="number" name="exang" required defaultValue="0" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Oldpeak</label>
-              <input type="number" step="any" name="oldpeak" required defaultValue="1.0" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Độ dốc ST (slope)</label>
-              <input type="number" name="slope" required defaultValue="1" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Số mạch chính (ca: 0-4)</label>
-              <input type="number" name="ca" required defaultValue="0" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Thal (0-3)</label>
-              <input type="number" name="thal" required defaultValue="2" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-            </div>
-          </div>
-
-          {/* Nút bấm giữ nguyên style cũ ở bước này */}
-          <button type="submit" disabled={loading} className="mt-10 w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"> {/* Tăng margin top */}
-            {loading ? 'Đang xử lý...' : 'Dự đoán'}
-          </button>
-        </form>
-
-        {/* Phần kết quả giữ nguyên style cũ ở bước này */}
-        {error && <p className="mt-6 text-center text-red-600">Lỗi: {error}</p>}
-
-        {result && (
-          <div className="mt-8 p-6 bg-gray-100 border border-gray-200 rounded-lg text-center">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Kết quả Chẩn đoán</h2>
-            <p className={`text-xl font-bold ${result.prediction === 1 ? 'text-red-600' : 'text-green-600'}`}>
-              {result.prediction === 1 ? 'Có nguy cơ mắc bệnh tim' : 'Không có nguy cơ'}
-            </p>
-            <p className="text-md text-gray-600 mt-2">
-              Xác suất mắc bệnh ước tính: <span className="font-bold text-gray-800">{result.probability}</span>
-            </p>
-          </div>
-        )}
+    <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-background">
+      <div className="w-full max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold text-center">Heart Disease Prediction</CardTitle>
+            <CardDescription className="text-center text-lg">Enter the patient's details below to predict the risk of heart disease.</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {formFieldsConfig.map(field => (
+                  <FormField 
+                    key={field.id}
+                    id={field.id}
+                    label={field.label}
+                    placeholder={field.placeholder}
+                    value={formData[field.id]}
+                    onChange={handleChange}
+                  />
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col items-center gap-4 pt-6">
+              <Button type="submit" className="w-full md:w-1/2 lg:w-1/3" disabled={isLoading}>
+                {isLoading ? 'Predicting...' : 'Predict'}
+              </Button>
+              {error && (
+                <div className="mt-4 p-4 rounded-md bg-destructive w-full">
+                  <p className="text-center font-semibold text-destructive-foreground">Error: {error}</p>
+                </div>
+              )}
+              {result && (
+                <div className="mt-4 p-4 rounded-md bg-secondary w-full text-center">
+                  <h3 className="text-lg font-bold text-secondary-foreground">Prediction Result</h3>
+                  <p className={`text-2xl font-bold ${result.prediction === 1 ? 'text-red-500' : 'text-green-500'}`}>
+                    {result.prediction === 1 ? 'High Risk' : 'Low Risk'}
+                  </p>
+                  <p className="text-md text-muted-foreground">Probability of Heart Disease: {result.probability}</p>
+                </div>
+              )}
+            </CardFooter>
+          </form>
+        </Card>
       </div>
     </main>
   );

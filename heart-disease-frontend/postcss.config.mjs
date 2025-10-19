@@ -1,10 +1,5 @@
-/** @type {import('postcss-load-config').Config} */
-const config = {
+export default {
   plugins: {
-    // Thay đổi ở đây: Gọi plugin thông qua package mới
-    '@tailwindcss/postcss': {}, 
-    autoprefixer: {},
+    '@tailwindcss/postcss': {},
   },
 };
-
-export default config;
