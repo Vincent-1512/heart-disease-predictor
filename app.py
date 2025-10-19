@@ -7,7 +7,7 @@ import pandas as pd # Cần pandas để xử lý dữ liệu đầu vào
 import os
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+CORS(app)
 
 # --- Tải mô hình và các file phụ trợ ---
 # HÃY CHỌN MÔ HÌNH TỐT NHẤT BẠN ĐÃ HUẤN LUYỆN
@@ -25,12 +25,7 @@ except Exception as e:
 
 @app.route('/api/predict', methods=['POST', 'OPTIONS'])
 def predict():
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
-        response.headers.add("Access-Control-Allow-Methods", "POST")
-        return response
+    
 
     if not all([model, scaler, feature_order]):
         return jsonify({'error': 'Mô hình chưa được tải thành công trên server.'}), 500
