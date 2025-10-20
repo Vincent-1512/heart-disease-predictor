@@ -23,7 +23,7 @@ except Exception as e:
     print(f"LỖI: Không thể tải model. Vui lòng kiểm tra lại tên file. Lỗi: {e}")
     model, scaler, feature_order = None, None, []
 
-@app.route('/api/predict', methods=['POST', 'OPTIONS'])
+@app.route('/api/predict', methods=['POST'])
 def predict():
     
 
